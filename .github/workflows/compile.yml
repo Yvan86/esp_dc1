@@ -1,7 +1,7 @@
 name: Compile DC1
 run-name: ${{ github.actor }} is compiling DC1
+
 on:
- repository_dispatch:
  workflow_dispatch:
 
 jobs:
