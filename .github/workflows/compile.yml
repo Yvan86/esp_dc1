@@ -29,7 +29,8 @@ jobs:
       - name: compile
         run: |
          sudo apt install python3-pip
-         sudo pip3 install platformio
+         pip3 install platformio
+         ls -la
          cd ./esp_dc1
          platformio run
          
