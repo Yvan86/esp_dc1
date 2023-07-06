@@ -7,13 +7,14 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    
     steps:
       - name: Checkout
         uses: actions/checkout@v3
       
       - name: Initialization environment
         env:
-        DEBIAN_FRONTEND: noninteractive
+         DEBIAN_FRONTEND: noninteractive
         run: |
          sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc
          sudo -E apt-get -qq update
@@ -41,37 +42,35 @@ jobs:
         with:
           path: ./esp_dc1/.pio/build/dc1/firmware.bin
 
+      - name: Generate release tag
+        id: tag
+        if: env.UPLOAD_RELEASE == 'true'
+        run: |
+         echo "::set-output name=release_tag::$(date +"%Y.%m.%d-%H%M")"
+         touch release.txt
+         echo "::set-output name=status::success"
 
+      - name: Upload firmware to release
+        uses: softprops/action-gh-release@v1
+        if: steps.tag.outputs.status == 'success'
+        env:
+         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+         tag_name: ${{ steps.tag.outputs.release_tag }}
+         body_path: release.txt
+         files: ./esp_dc1/.pio/build/dc1/firmware.bin
 
-    - name: Generate release tag
-      id: tag
-      if: env.UPLOAD_RELEASE == 'true'
-      run: |
-        echo "::set-output name=release_tag::$(date +"%Y.%m.%d-%H%M")"
-        touch release.txt
-        echo "::set-output name=status::success"
+      - name: Delete workflow runs
+        uses: GitRML/delete-workflow-runs@main
+        with:
+         retain_days: 1
+         keep_minimum_runs: 3
 
-    - name: Upload firmware to release
-      uses: softprops/action-gh-release@v1
-      if: steps.tag.outputs.status == 'success'
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ steps.tag.outputs.release_tag }}
-        body_path: release.txt
-        files: ./esp_dc1/.pio/build/dc1/firmware.bin
-
-    - name: Delete workflow runs
-      uses: GitRML/delete-workflow-runs@main
-      with:
-        retain_days: 1
-        keep_minimum_runs: 3
-
-    - name: Remove old Releases
-      uses: dev-drprasad/delete-older-releases@v0.1.0
-      if: env.UPLOAD_RELEASE == 'true' && !cancelled()
-      with:
-        keep_latest: 3
-        delete_tags: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Remove old Releases
+        uses: dev-drprasad/delete-older-releases@v0.1.0
+        if: env.UPLOAD_RELEASE == 'true' && !cancelled()
+        with:
+         keep_latest: 3
+         delete_tags: true
+        env:
+         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
